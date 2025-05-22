@@ -1,0 +1,29 @@
+# Virtual environment folders
+**/venv/
+
+# Python cache
+**/__pycache__/
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Coverage data
+.coverage
+coverage.xml
+htmlcov/
+
+# Application data JSON file (if you don't want to version it)
+tarefas.json
+
+# Test-specific JSON files
+# (Adjust patterns if your test JSON files have different naming conventions)
+*_teste_*.json
+*_test_*.json
+corrompido_*.json 
+io_error_*.json
+arquivo_que_nao_existe_*.json
+
+# If you want to ignore ALL .json files (be cautious with this):
+# *.json
