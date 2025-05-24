@@ -31,6 +31,11 @@ def gerenciador_com_tarefas(gerenciador_vazio):
     gerenciador_vazio.marcar_tarefa_como_concluida(t3.id)
     return gerenciador_vazio, [t1, t2, t3]
 
+@pytest.fixture
+def arquivo_teste(tmp_path):
+    """Cria um caminho de arquivo temporário para teste."""
+    return tmp_path / "tarefas_teste.json"
+
 
 class TestGerenciadorDeTarefas:
     """
@@ -296,6 +301,52 @@ class TestGerenciadorDeTarefas:
         
         if os.path.exists(arquivo_teste_io_error):
             os.remove(arquivo_teste_io_error)
+
+    def test_adicionar_tarefa_levanta_value_error(self, monkeypatch, capsys):
+        """Força um ValueError no Tarefa.__init__ e verifica o except de adicionar_tarefa."""
+        # Garante que o arquivo de persistência não existe para não atrapalhar o __init__
+        if os.path.exists(ARQUIVO_TESTE_JSON):
+            os.remove(ARQUIVO_TESTE_JSON)
+
+        ger = GerenciadorDeTarefas(arquivo_json=ARQUIVO_TESTE_JSON)
+
+        # Monkeypatch: quando o Gerenciador chamar Tarefa(...), levantará ValueError
+        def fake_tarefa_ctor(descricao, data_vencimento=None):
+            raise ValueError("Erro simulado ao criar Tarefa")
+        monkeypatch.setattr("gerenciador_tarefas.logica.Tarefa", fake_tarefa_ctor)
+
+        resultado = ger.adicionar_tarefa("Descrição qualquer", "2025-01-01")
+        assert resultado is None
+
+        saida = capsys.readouterr().out
+        assert "Erro ao criar tarefa: Erro simulado ao criar Tarefa" in saida
+
+    def test_carregar_tarefas_conteudo_nao_lista(self, arquivo_teste, capsys):
+        """Quando o JSON existe mas não é uma lista, deve cair no primeiro ramo do _carregar_tarefas."""
+        # Cria um JSON que é um dicionário, não uma lista
+        arquivo_teste.write_text(json.dumps({"foo": "bar"}), encoding="utf-8")
+
+        ger = GerenciadorDeTarefas(arquivo_json=str(arquivo_teste))
+
+        # Como o conteúdo não é lista, não carrega nada
+        assert ger.tarefas == []
+
+        saida = capsys.readouterr().out
+        assert f"Erro: O conteúdo do arquivo {arquivo_teste} não é uma lista JSON válida" in saida
+
+    def test_carregar_tarefas_dados_invalidos(self, arquivo_teste, capsys):
+        """Quando há itens na lista mas Tarefa.from_dict levanta ValueError, deve imprimir mensagem e ignorar."""
+        # Monta uma lista com um dicionário que torna Tarefa.from_dict inválido (descricao=None)
+        dados_invalidos = [{"id": "1", "descricao": None, "data_vencimento": "2025-12-31", "concluida": False}]
+        arquivo_teste.write_text(json.dumps(dados_invalidos), encoding="utf-8")
+
+        ger = GerenciadorDeTarefas(arquivo_json=str(arquivo_teste))
+
+        # Nenhuma tarefa válida deve ser carregada
+        assert ger.tarefas == []
+
+        saida = capsys.readouterr().out
+        assert f"Erro nos dados ao carregar uma tarefa do arquivo {arquivo_teste}" in saida
 
     @classmethod
     def teardown_class(cls):
