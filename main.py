@@ -1,5 +1,6 @@
 # main.py
 
+import sys
 from gerenciador_tarefas.logica import GerenciadorDeTarefas
 
 def exibir_menu():
@@ -14,7 +15,10 @@ def exibir_menu():
 
 def main():
     """Função principal que executa o loop da aplicação CLI."""
-    gerenciador = GerenciadorDeTarefas()
+    # Usa o primeiro argumento da linha de comando como nome do arquivo,
+    # caso contrário, usa o padrão "tarefas.json".
+    nome_arquivo = sys.argv[1] if len(sys.argv) > 1 else "tarefas.json"
+    gerenciador = GerenciadorDeTarefas(arquivo_json=nome_arquivo)
 
     while True:
         exibir_menu()
